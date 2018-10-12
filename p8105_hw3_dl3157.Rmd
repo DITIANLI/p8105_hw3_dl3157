@@ -7,6 +7,22 @@ output: github_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
 ```
 
+
+```{r p1}
+devtools::install_github("p8105/p8105.datasets")
+library(p8105.datasets)
+
+brfss_sm = brfss_smart2010 %>%
+janitor::clean_names() %>%
+separate(locationdesc, into = c("state", "county"), sep = " - ") %>%
+filter(topic == 'Overall Health') %>%
+select(-class,-topic,-question,-sample_size,-locationabbr,-(confidence_limit_low:geo_location)) %>%
+spread(key = response, value = data_value) %>%
+janitor::clean_names() %>%
+select(year,state,county,excellent,very_good,good,fair,poor)
+
+```
 
