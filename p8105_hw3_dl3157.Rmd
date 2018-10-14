@@ -13,21 +13,59 @@ knitr::opts_chunk$set(
   out.width = "90%"
 )
 library(tidyverse)
+library(ggridges)
+theme_set(theme_bw())
 ```
 
 
 ```{r p1}
 devtools::install_github("p8105/p8105.datasets")
 library(p8105.datasets)
-
 brfss_sm = brfss_smart2010 %>%
 janitor::clean_names() %>%
-separate(locationdesc, into = c("state", "county"), sep = " - ") %>%
 filter(topic == 'Overall Health') %>%
-select(-class,-topic,-question,-sample_size,-locationabbr,-(confidence_limit_low:geo_location)) %>%
-spread(key = response, value = data_value) %>%
-janitor::clean_names() %>%
-select(year,state,county,excellent,very_good,good,fair,poor)
+ mutate(response = as.factor(response),
+         response = factor(response, levels = c("Excellent", "Very good", "Good", "Fair", "Poor"))) %>% 
+  select(year, locationabbr, locationdesc, response, everything()) 
+
+
+```
+
+```{r p1q1}
+brfss_sm %>%
+  group_by(year,locationabbr) %>% 
+  summarize(n = n_distinct(locationdesc)) %>% 
+  filter(n == 7) %>% 
+  filter(year == 2002)
+  
+```
+In 2002, CT, FL and NC were observed at 7 locations.
+
+```{r p1q2}
+brfss_sm %>% 
+  group_by(year, locationabbr) %>% 
+  summarize(n = n_distinct(locationdesc)) %>% 
+  ggplot(aes(x = year, y = n, color = locationabbr)) + 
+  geom_point() + geom_line(alpha = .7) + 
+  labs( title = "locations in each state from 2002 to 2010",
+    x = "Year",
+    y = "Number of locations") + 
+  theme(legend.position = "left")
+```
+
+```{r p1q3}
+brfss_sm1 <- brfss_sm %>% 
+  spread(key = "response", value = "data_value") %>% 
+  janitor::clean_names() %>% 
+  select(year, locationabbr, locationdesc, excellent:poor) %>% 
+  filter( year %in% c(2002,2006,2010) ) %>% 
+  group_by(year, locationabbr) %>% 
+  filter(locationabbr == "NY") %>% 
+  summarize(mean_excellent = mean(excellent, na.rm = TRUE),
+            sd_excellent = sd(excellent, na.rm = TRUE)) %>% 
+  knitr::kable(digits = 3)
+
+brfss_sm1
 
 ```
 
