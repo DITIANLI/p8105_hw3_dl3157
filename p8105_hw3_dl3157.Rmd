@@ -69,3 +69,95 @@ brfss_sm1
 
 ```
 
+```{r p1q4}
+brfss_sm %>% 
+  spread(key = "response", value = "data_value") %>% 
+  janitor::clean_names() %>% 
+  select(year, locationabbr, locationdesc, excellent:poor) %>% 
+  group_by(year, locationabbr) %>% 
+  summarize(mean_excellent = mean(excellent, na.rm = TRUE),
+            mean_very_good = mean(very_good, na.rm = TRUE),
+            mean_good = mean(good, na.rm = TRUE),
+            mean_fair = mean(fair, na.rm = TRUE),
+            mean_poor = mean(poor, na.rm = TRUE)
+            ) %>% 
+  gather(key = "mean_response", value = "average_proportion",    
+  mean_excellent:mean_poor) %>% 
+  ggplot(aes(x = year, y = average_proportion, color = locationabbr)) + 
+  geom_point() + geom_line() +
+  facet_grid(~mean_response) +
+  labs(
+    title = "Average proportion in each response for each year and each    
+    state",
+    x = "Year",
+    y = "Average proportion"
+  ) + theme(legend.position = "none",axis.text.x = element_text(angle = 45))
+```
+
+```{r p2}
+devtools::install_github("p8105/p8105.datasets")
+library(p8105.datasets)
+instacart
+```
+overview:
+
+```{r p2q1}
+instacart %>% 
+  group_by(aisle) %>% 
+  summarize(n_item = n()) %>% 
+  arrange(desc(n_item))
+```
+There are 134 aisles in tha instacart dataset, the most items are ordered from fresh vegetables, fresh fruits, packaged vegetables fruits.
+
+```{r p2q2}
+instacart %>% 
+  group_by(aisle, department) %>% 
+  summarize(n_item = n()) %>% 
+  group_by(department) %>% 
+  mutate(n_mean = mean(n_item)) %>% 
+  ggplot(aes(x = aisle, y = n_item, color = department)) +   
+  geom_point(aes(size = n_item)) +
+  theme(axis.title.x =  element_text(angle = 45))
+
+instacart %>% 
+  mutate(aisle = as.factor(aisle)) %>% 
+  group_by(aisle, department) %>% 
+  summarize(n_item = n() ) %>% 
+  arrange(n_item) %>% 
+  ggplot(aes(x = aisle, y = n_item, fill = department)) + geom_bar(stat = "identity") +
+    theme(axis.text.x = element_text(angle = 45)) +
+  labs(
+    title = "Barplot of number of items ordered from each aisle",
+    x = "aisle name",
+    y = "number of items"
+  )
+
+```
+
+```{r p2q3}
+instacart %>% 
+  group_by(aisle, product_name) %>% 
+  summarize(count = n()) %>% 
+  group_by(aisle) %>% 
+  mutate(rank = min_rank(desc(count))) %>%  
+  filter(aisle %in% c("baking ingredients", "dog food care", "packaged     
+  vegetables fruits")) %>% 
+  filter(rank < 2)
+```
+
+```{r p2q4}
+instacart %>% 
+  group_by(product_name, order_dow) %>% 
+  summarize(mean_hour = round(mean(order_hour_of_day), digits = 2)) %>% 
+  filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) %>% 
+  spread(key = "order_dow", value = "mean_hour") %>% 
+  knitr::kable()
+```
+
+
+```{r p3}
+devtools::install_github("p8105/p8105.datasets")
+library(p8105.datasets)
+ny_noaa
+```
+
