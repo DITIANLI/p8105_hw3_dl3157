@@ -19,7 +19,7 @@ devtools::install_github("thomasp85/patchwork")
 theme_set(theme_bw())
 ```
 
-
+## Problem 1
 ```{r p1}
 devtools::install_github("p8105/p8105.datasets")
 library(p8105.datasets)
@@ -33,6 +33,9 @@ levels(brfss_sm$response)
 
 ```
 
+Comment: We've done data cleaning part and reordered data by response.
+
+Question 1
 ```{r p1q1}
 brfss_sm %>%
   group_by(year,state) %>% 
@@ -41,8 +44,10 @@ brfss_sm %>%
   filter(year == 2002)
   
 ```
-In 2002, CT, FL and NC were observed at 7 locations.
 
+Comment: From result we know, in 2002, CT, FL and NC were observed at 7 locations.
+
+Question 2
 ```{r p1q2}
 brfss_sm %>% 
   group_by(year, state) %>% 
@@ -54,9 +59,10 @@ brfss_sm %>%
     y = "Number of locations") + 
   theme(legend.position = "left")
 ```
-comment:
 
+Comment: From result, from 2002 to 2010 for most states, the number of locations in each state is below 20, however, Florida has two peak value above 40.
 
+Question 3
 ```{r p1q3}
 brfss_sm1 <- brfss_sm %>% 
   spread(key = "response", value = "data_value") %>% 
@@ -73,9 +79,9 @@ brfss_sm1
 
 ```
 
+Comment: For New York state, the min of excellent mean is 17.2, the max of excellent mean is 27.5, there are three "NA" for sd_excellent, and range for sd_excellent is from 0.6 to 3.3.
 
-
-
+Question 4
 ```{r p1q4}
 brfss_sm %>% 
   spread(key = "response", value = "data_value") %>% 
@@ -102,28 +108,32 @@ brfss_sm %>%
     y = "Average proportion"
   ) + theme(legend.position = "none",axis.text.x = element_text(angle = 45))
 ```
-comment:
-改顺序
+
+Comment: We have 5 spaghetti plot for mean proportions of different responses. From result it seems that we have same trend and range of value for each response type from 2002-2010 across year.
 
 ```{r p2}
 devtools::install_github("p8105/p8105.datasets")
 library(p8105.datasets)
 instacart
+sum(is.na(instacart))
+nrow(distinct(instacart, order_id))
+nrow(distinct(instacart, user_id))
+nrow(distinct(instacart, product_id))
 ```
-overview:
-1384617*15
-key variables
-三个id
 
+Overview: The dimension of dataset instacart is 1384617*15=20769255, there is no missing data in instacart. For key variables we are interested in, there are 131209 orders, 131209 users and 39123 products in instacart.
 
+Question 1
 ```{r p2q1}
 instacart %>% 
   group_by(aisle) %>% 
   summarize(n_item = n()) %>% 
   arrange(desc(n_item))
 ```
-There are 134 aisles in tha instacart dataset, the most items are ordered from fresh vegetables, fresh fruits, packaged vegetables fruits.
 
+There are 134 aisles in tha instacart dataset, the most item ordered from fresh  is vegetables, and then it comes to fresh fruits, packaged vegetables fruits(which indicates the great demand in healthy food). 
+
+Question 2
 ```{r p2q2, fig.width=10, fig.height=20}
 instacart1 <- instacart %>% 
   group_by(aisle) %>% 
@@ -140,9 +150,10 @@ instacart1 <- instacart %>%
       )
 instacart1
 ```
-comment:
 
+Comment: In this question, we dividies our plot into 3 parts to make it clear. From the result, fresh vegetables and fresh fruits have largest numbers of items ordered in aisles, which is consistent with our conclusion in question above. Beauty has the lowest number of items ordered in aisles. 
 
+Question 3
 ```{r p2q3}
 instacart %>%  
   filter(aisle == "baking ingredients" | aisle == "dog food care" | aisle == "packaged vegetables fruits") %>% 
@@ -152,7 +163,10 @@ instacart %>%
   mutate(rank = min_rank(desc(count))) %>%  
   filter(rank < 2)
 ```
-comment:疑惑？？？？
+
+Comment: From result, the most popular item in "baking ingredients","dog food care" and "packaged vegetables fruits" are Light brown sugar, Snack Sticks Chicken & Rice Recipe Dog Treats and Organic Baby Spinach respectively. The order quantity is quite different(Light brown suga=499, Snack Sticks Chicken & Rice Recipe Dog Treats=30, Organic Baby Spinach=9784).
+
+Question 4
 ```{r p2q4}
 instacart %>% 
   group_by(product_name, order_dow) %>% 
@@ -161,8 +175,9 @@ instacart %>%
   spread(key = "product_name", value = "mean_hour") %>% 
   knitr::kable()
 ```
-comment:疑惑不解
 
+Comment: order_dow represents Sunday=0 to Saturday=6. People order Pink Lady Apples from 11 to 14 on average, it is the time overlap the lunch break. For 
+the Coffee Ice Cream, it is ordered from 13 to 16.
 
 ```{r p3}
 devtools::install_github("p8105/p8105.datasets")
@@ -177,8 +192,10 @@ ny_noaa %>%
             tmax_na = sum(is.na(tmax)),
             tmin_na = sum(is.na(tmin)))
 ```
-为啥要加400？
 
+Description: The dimension of ny_noaa dataset is 2,595,176 x 7, in this dataset we have id, date of observation, precipitation, snowfall in mm, snow depth in mm, maximum temperature and minimum temprature both in degree centigrade on each day across 1981 t0 2010. From result we notice that missing data is a big problem since large proportion of data is missing in ny_noaa.
+
+Question 1
 ```{r p3q1}
 ny_noaa1 <- ny_noaa %>% 
   separate(date, into = c("year", "month", "day"), sep = "-") %>% 
@@ -188,9 +205,9 @@ ny_noaa1 <- ny_noaa %>%
   count(ny_noaa, snow) %>% arrange(desc(n))
 ```
 
+Comment: For snowfall, the most commonly observed value is 0 degree centigrade, because we only have snowfall during winter, which only happens not that frequently in locations we observed.
 
-
-
+Question 2
 ```{r p3q2}
 ny_noaa1 %>% 
   group_by(id, year, month) %>% 
@@ -208,7 +225,10 @@ ny_noaa1 %>%
   )
 ```
 
-```{r p3q4}
+Comment: From box plot we can conclude that there is approximate same pattern for tmax across years. For tmax in Jan, the range of tmax is from -10 to 5 degree, for tmax in July, the tmax is from 25 to 30. We do have outliers, for example, in Jan 1982, we have an outlier below -10 degree; in July 1987, we have an outlier below 15 degree.
+
+Question 3
+```{r p3q3}
 ny_noaa2 <- ny_noaa1 %>% 
   ggplot(aes(x = tmax, y = tmin)) + geom_hex()  +
   labs(
@@ -220,10 +240,11 @@ ny_noaa2
 
 ny_noaa3 <- ny_noaa1 %>% 
   filter(snow > 0 & snow < 100) %>% 
-  ggplot(aes(x = snow, y = year)) + geom_density_ridges(scale = .8) +
+  ggplot(aes(x = snow, y = year)) + geom_density_ridges(scale = 1) +
   labs(
     title = "density plot of snowfall from 0 mm to 100 mm across years",
     x = "snow fall in mm", y = "Year")
 ny_noaa3
 ```
 
+Comment: From hexplot we can conclude that tmax and tmin have approximate linear relationship, the light blue means there are more counts in the plot.From ridges plot of snowfall we know, we have same pattern of snowfall distribution across years.
