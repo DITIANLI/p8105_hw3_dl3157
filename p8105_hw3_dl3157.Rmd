@@ -14,6 +14,8 @@ knitr::opts_chunk$set(
 )
 library(tidyverse)
 library(ggridges)
+library(hexbin)
+devtools::install_github("thomasp85/patchwork")
 theme_set(theme_bw())
 ```
 
@@ -26,15 +28,15 @@ janitor::clean_names() %>%
 filter(topic == 'Overall Health') %>%
  mutate(response = as.factor(response),
          response = factor(response, levels = c("Excellent", "Very good", "Good", "Fair", "Poor"))) %>% 
-  select(year, locationabbr, locationdesc, response, everything()) 
-
+  select(year, state = locationabbr, county = locationdesc, response, everything()) 
+levels(brfss_sm$response)
 
 ```
 
 ```{r p1q1}
 brfss_sm %>%
-  group_by(year,locationabbr) %>% 
-  summarize(n = n_distinct(locationdesc)) %>% 
+  group_by(year,state) %>% 
+  summarize(n = n_distinct(county)) %>% 
   filter(n == 7) %>% 
   filter(year == 2002)
   
@@ -43,38 +45,43 @@ In 2002, CT, FL and NC were observed at 7 locations.
 
 ```{r p1q2}
 brfss_sm %>% 
-  group_by(year, locationabbr) %>% 
-  summarize(n = n_distinct(locationdesc)) %>% 
-  ggplot(aes(x = year, y = n, color = locationabbr)) + 
+  group_by(year, state) %>% 
+  summarize(n = n_distinct(county)) %>% 
+  ggplot(aes(x = year, y = n, color = state)) + 
   geom_point() + geom_line(alpha = .7) + 
   labs( title = "locations in each state from 2002 to 2010",
     x = "Year",
     y = "Number of locations") + 
   theme(legend.position = "left")
 ```
+comment:
+
 
 ```{r p1q3}
 brfss_sm1 <- brfss_sm %>% 
   spread(key = "response", value = "data_value") %>% 
   janitor::clean_names() %>% 
-  select(year, locationabbr, locationdesc, excellent:poor) %>% 
-  filter( year %in% c(2002,2006,2010) ) %>% 
-  group_by(year, locationabbr) %>% 
-  filter(locationabbr == "NY") %>% 
+  select(year, state, county, excellent:poor) %>% 
+  filter( year == 2002 | year == 2006 | year == 2010) %>% 
+  group_by(county) %>% 
+  filter(state == "NY") %>% 
   summarize(mean_excellent = mean(excellent, na.rm = TRUE),
             sd_excellent = sd(excellent, na.rm = TRUE)) %>% 
-  knitr::kable(digits = 3)
+  knitr::kable(digits = 1)
 
 brfss_sm1
 
 ```
 
+
+
+
 ```{r p1q4}
 brfss_sm %>% 
   spread(key = "response", value = "data_value") %>% 
   janitor::clean_names() %>% 
-  select(year, locationabbr, locationdesc, excellent:poor) %>% 
-  group_by(year, locationabbr) %>% 
+  select(year, state, county, excellent:poor) %>% 
+  group_by(year, state) %>% 
   summarize(mean_excellent = mean(excellent, na.rm = TRUE),
             mean_very_good = mean(very_good, na.rm = TRUE),
             mean_good = mean(good, na.rm = TRUE),
@@ -82,8 +89,10 @@ brfss_sm %>%
             mean_poor = mean(poor, na.rm = TRUE)
             ) %>% 
   gather(key = "mean_response", value = "average_proportion",    
-  mean_excellent:mean_poor) %>% 
-  ggplot(aes(x = year, y = average_proportion, color = locationabbr)) + 
+  mean_excellent:mean_poor) %>%
+  mutate(mean_response = as.factor(mean_response),
+  mean_response = factor(mean_response, levels = c("mean_excellent", "mean_very_good", "mean_good", "mean_fair", "mean_poor"))) %>% 
+  ggplot(aes(x = year, y = average_proportion, color = state)) + 
   geom_point() + geom_line() +
   facet_grid(~mean_response) +
   labs(
@@ -93,6 +102,8 @@ brfss_sm %>%
     y = "Average proportion"
   ) + theme(legend.position = "none",axis.text.x = element_text(angle = 45))
 ```
+comment:
+改顺序
 
 ```{r p2}
 devtools::install_github("p8105/p8105.datasets")
@@ -100,6 +111,10 @@ library(p8105.datasets)
 instacart
 ```
 overview:
+1384617*15
+key variables
+三个id
+
 
 ```{r p2q1}
 instacart %>% 
@@ -109,55 +124,106 @@ instacart %>%
 ```
 There are 134 aisles in tha instacart dataset, the most items are ordered from fresh vegetables, fresh fruits, packaged vegetables fruits.
 
-```{r p2q2}
-instacart %>% 
-  group_by(aisle, department) %>% 
+```{r p2q2, fig.width=10, fig.height=20}
+instacart1 <- instacart %>% 
+  group_by(aisle) %>% 
   summarize(n_item = n()) %>% 
-  group_by(department) %>% 
-  mutate(n_mean = mean(n_item)) %>% 
-  ggplot(aes(x = aisle, y = n_item, color = department)) +   
-  geom_point(aes(size = n_item)) +
-  theme(axis.title.x =  element_text(angle = 45))
-
-instacart %>% 
-  mutate(aisle = as.factor(aisle)) %>% 
-  group_by(aisle, department) %>% 
-  summarize(n_item = n() ) %>% 
-  arrange(n_item) %>% 
-  ggplot(aes(x = aisle, y = n_item, fill = department)) + geom_bar(stat = "identity") +
-    theme(axis.text.x = element_text(angle = 45)) +
-  labs(
-    title = "Barplot of number of items ordered from each aisle",
-    x = "aisle name",
-    y = "number of items"
-  )
-
+  mutate(group = as.numeric(cut_number(n_item, 3))) %>% 
+  ggplot(aes(x = reorder(aisle, n_item), y = n_item)) +
+    geom_point() +
+    facet_wrap(group ~ ., nrow = 3, scales = "free") +
+    theme(axis.text.x = element_text(size = 6, hjust = 1, angle = 45)) +
+    labs(
+      title = "Number of Items Ordered in Aisles",
+      x = "Aisle Name",
+      y = "Number of Items Ordered"
+      )
+instacart1
 ```
+comment:
+
 
 ```{r p2q3}
-instacart %>% 
+instacart %>%  
+  filter(aisle == "baking ingredients" | aisle == "dog food care" | aisle == "packaged vegetables fruits") %>% 
   group_by(aisle, product_name) %>% 
   summarize(count = n()) %>% 
   group_by(aisle) %>% 
   mutate(rank = min_rank(desc(count))) %>%  
-  filter(aisle %in% c("baking ingredients", "dog food care", "packaged     
-  vegetables fruits")) %>% 
   filter(rank < 2)
 ```
-
+comment:疑惑？？？？
 ```{r p2q4}
 instacart %>% 
   group_by(product_name, order_dow) %>% 
-  summarize(mean_hour = round(mean(order_hour_of_day), digits = 2)) %>% 
+  summarize(mean_hour = round(mean(order_hour_of_day), digits = 1)) %>% 
   filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) %>% 
-  spread(key = "order_dow", value = "mean_hour") %>% 
+  spread(key = "product_name", value = "mean_hour") %>% 
   knitr::kable()
 ```
+comment:疑惑不解
 
 
 ```{r p3}
 devtools::install_github("p8105/p8105.datasets")
 library(p8105.datasets)
 ny_noaa
+
+ny_noaa %>% 
+  group_by(id) %>% 
+  summarize(prcp_na = sum(is.na(prcp)),
+            snow_na = sum(is.na(snow)),
+            snwd_na = sum(is.na(snwd)),
+            tmax_na = sum(is.na(tmax)),
+            tmin_na = sum(is.na(tmin)))
+```
+为啥要加400？
+
+```{r p3q1}
+ny_noaa1 <- ny_noaa %>% 
+  separate(date, into = c("year", "month", "day"), sep = "-") %>% 
+  mutate(prcp = prcp / 10,
+         tmax = as.numeric(tmax) / 10,
+         tmin = as.numeric(tmin) / 10)
+  count(ny_noaa, snow) %>% arrange(desc(n))
+```
+
+
+
+
+```{r p3q2}
+ny_noaa1 %>% 
+  group_by(id, year, month) %>% 
+  summarize(mean_tmax = round(mean(tmax, na.rm = TRUE), digits = 1),
+            mean_tmin = round(mean(tmin, na.rm = TRUE), digits = 1)) %>% 
+  na.omit() %>% 
+  gather(key = mean_temp, value = temp, mean_tmax) %>%
+  filter(month %in% c("01", "07")) %>% 
+  ggplot(aes(x = year, y = temp)) + geom_boxplot() +   
+  facet_grid(~month) + 
+  theme(axis.text.x = element_text(size = 5, angle = 45),legend.position = "bottom") +
+   labs(
+    title = "Average max temperature in January and July in each station  
+    from 1981 to 2010", x = "Year", y = "Average max temperature in ˚C"
+  )
+```
+
+```{r p3q4}
+ny_noaa2 <- ny_noaa1 %>% 
+  ggplot(aes(x = tmax, y = tmin)) + geom_hex()  +
+  labs(
+    title = "Hex plot of maximum temperature/minimum temperature",
+    x = "maximum temperature",
+    y = "minimum temperature"
+  )
+ny_noaa2
+
+ny_noaa3 <- ny_noaa1 %>% 
+  filter(snow > 0 & snow < 100) %>% 
+  ggplot(aes(x = snow, y = year)) + geom_density_ridges(scale = .8) +
+  labs(
+    title = "density plot of snowfall from 0 mm to 100 mm across years",
+    x = "snow fall in mm", y = "Year")
+ny_noaa3
 ```
 
